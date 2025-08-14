@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sorting Visualizer</title>
+<style>
+    body {
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg, #f4f4f4);
+        color: var(--text, #000);
+        transition: background-color 0.3s, color 0.3s;
+    }
+    header {
+        padding: 20px;
+        font-size: 1.8em;
+        font-weight: bold;
+    }
+    #bars {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        height: 300px;
+        margin: 20px;
+    }
+    .bar {
+        margin: 0 2px;
+        background-color: #4CAF50;
+        width: 20px;
+    }
+    button, select {
+        padding: 10px 20px;
+        margin: 5px;
+        font-size: 1em;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    button:hover {
+        opacity: 0.9;
+    }
+    select {
+        font-size: 1em;
+    }
+    #cppCode {
+        max-width: 800px;
+        margin: 20px auto;
+        text-align: left;
+        background: var(--code-bg, #fff);
+        padding: 15px;
+        border-radius: 5px;
+        white-space: pre-wrap;
+        font-family: Consolas, monospace;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    footer {
+        padding: 10px;
+        font-size: 0.9em;
+        background: var(--footer-bg, #222);
+        color: #fff;
+    }
+    @media (max-width: 600px) {
+        .bar { width: 5px; }
+        button, select { font-size: 0.9em; padding: 8px 12px; }
+    }
+</style>
+</head>
+<body>
+<header>Sorting Visualizer</header>
+
+<div>
+    <select id="algorithm">
+        <option>Bubble Sort</option>
+        <option>Selection Sort</option>
+        <option>Insertion Sort</option>
+        <option>Merge Sort</option>
+        <option>Quick Sort</option>
+        <option>Heap Sort</option>
+    </select>
+    <button onclick="generateArray()">Generate</button>
+    <button onclick="startSort()">Start</button>
+    <button onclick="stopSort()">Stop</button>
+    <button onclick="generateArray()">Restart</button>
+    <button onclick="toggleTheme()">Toggle Dark/Light</button>
+</div>
+
+<div id="bars"></div>
+
+<h3>Algorithm (C++ Example)</h3>
+<div id="cppCode">// Select an algorithm and click Start to view its code.</div>
+
+<footer>Built by Aayush Aryal</footer>
+
+<script>
+let array = [];
+let sorting = false;
+let stopFlag = false;
+
+function generateArray(size = 20) {
+    stopSort(); 
+    array = [];
+    for (let i = 0; i < size; i++) {
+        array.push(Math.floor(Math.random() * 250) + 10);
+    }
+    drawArray();
+}
+
+function drawArray(highlight = []) {
+    const bars = document.getElementById('bars');
+    bars.innerHTML = '';
+    array.forEach((value, index) => {
+        const bar = document.createElement('div');
+        bar.classList.add('bar');
+        bar.style.height = value + 'px';
+        bar.style.backgroundColor = highlight.includes(index) ? 'red' : '#4CAF50';
+        bars.appendChild(bar);
+    });
+}
+
+async function startSort() {
+    if (sorting) return;
+    sorting = true;
+    stopFlag = false;
+    const algorithm = document.getElementById('algorithm').value;
+    showCppCode(algorithm);
+    switch (algorithm) {
+        case 'Bubble Sort': await bubbleSort(); break;
+        case 'Selection Sort': await selectionSort(); break;
+        case 'Insertion Sort': await insertionSort(); break;
+        case 'Merge Sort': await mergeSortWrapper(); break;
+        case 'Quick Sort': await quickSortWrapper(); break;
+        case 'Heap Sort': await heapSort(); break;
+    }
+    sorting = false;
+}
+
+function stopSort() {
+    stopFlag = true;
+    sorting = false;
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Sorting Algorithms
+async function bubbleSort() {
+    for (let i = 0; i < array.length - 1; i++) {
+        for (let j = 0; j < array.length - i - 1; j++) {
+            if (stopFlag) return;
+            if (array[j] > array[j + 1]) {
+                [array[j], array[j + 1]] = [array[j + 1], array[j]];
+                drawArray([j, j+1]);
+                await sleep(50);
+            }
+        }
+    }
+}
+
+async function selectionSort() {
+    for (let i = 0; i < array.length; i++) {
+        let min = i;
+        for (let j = i + 1; j < array.length; j++) {
+            if (stopFlag) return;
+            if (array[j] < array[min]) min = j;
+        }
+        [array[i], array[min]] = [array[min], array[i]];
+        drawArray([i, min]);
+        await sleep(50);
+    }
+}
+
+async function insertionSort() {
+    for (let i = 1; i < array.length; i++) {
+        let key = array[i], j = i - 1;
+        while (j >= 0 && array[j] > key) {
+            if (stopFlag) return;
+            array[j + 1] = array[j];
+            j--;
+            drawArray([j, j+1]);
+            await sleep(50);
+        }
+        array[j + 1] = key;
+    }
+}
+
+async function mergeSortWrapper() {
+    await mergeSort(0, array.length - 1);
+}
+
+async function mergeSort(l, r) {
+    if (l >= r || stopFlag) return;
+    let m = Math.floor((l + r) / 2);
+    await mergeSort(l, m);
+    await mergeSort(m + 1, r);
+    let left = array.slice(l, m + 1), right = array.slice(m + 1, r + 1);
+    let i = 0, j = 0, k = l;
+    while (i < left.length && j < right.length) {
+        if (stopFlag) return;
+        array[k++] = (left[i] <= right[j]) ? left[i++] : right[j++];
+        drawArray([k]);
+        await sleep(50);
+    }
+    while (i < left.length) array[k++] = left[i++];
+    while (j < right.length) array[k++] = right[j++];
+}
+
+async function quickSortWrapper() {
+    await quickSort(0, array.length - 1);
+}
+
+async function quickSort(low, high) {
+    if (low < high && !stopFlag) {
+        let pi = await partition(low, high);
+        await quickSort(low, pi - 1);
+        await quickSort(pi + 1, high);
+    }
+}
+
+async function partition(low, high) {
+    let pivot = array[high], i = low - 1;
+    for (let j = low; j < high; j++) {
+        if (stopFlag) return;
+        if (array[j] < pivot) {
+            i++;
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        drawArray([j, high]);
+        await sleep(50);
+    }
+    [array[i+1], array[high]] = [array[high], array[i+1]];
+    return i + 1;
+}
+
+async function heapSort() {
+    let n = array.length;
+    for (let i = Math.floor(n/2) - 1; i >= 0; i--) await heapify(n, i);
+    for (let i = n - 1; i > 0; i--) {
+        if (stopFlag) return;
+        [array[0], array[i]] = [array[i], array[0]];
+        drawArray([0, i]);
+        await sleep(50);
+        await heapify(i, 0);
+    }
+}
+
+async function heapify(n, i) {
+    let largest = i, l = 2*i + 1, r = 2*i + 2;
+    if (l < n && array[l] > array[largest]) largest = l;
+    if (r < n && array[r] > array[largest]) largest = r;
+    if (largest != i) {
+        [array[i], array[largest]] = [array[largest], array[i]];
+        drawArray([i, largest]);
+        await sleep(50);
+        await heapify(n, largest);
+    }
+}
+
+// C++ Algorithm Display
+function showCppCode(algorithm) {
+    const codes = {
+        "Bubble Sort": `void bubbleSort(int arr[], int n) {\n  for (int i = 0; i < n - 1; i++) {\n    for (int j = 0; j < n - i - 1; j++) {\n      if (arr[j] > arr[j+1]) {\n        swap(arr[j], arr[j+1]);\n      }\n    }\n  }\n}`,
+        "Selection Sort": `void selectionSort(int arr[], int n) {\n  for (int i = 0; i < n - 1; i++) {\n    int min = i;\n    for (int j = i + 1; j < n; j++) {\n      if (arr[j] < arr[min]) min = j;\n    }\n    swap(arr[i], arr[min]);\n  }\n}`,
+        "Insertion Sort": `void insertionSort(int arr[], int n) {\n  for (int i = 1; i < n; i++) {\n    int key = arr[i];\n    int j = i - 1;\n    while (j >= 0 && arr[j] > key) {\n      arr[j+1] = arr[j];\n      j--;\n    }\n    arr[j+1] = key;\n  }\n}`,
+        "Merge Sort": `void mergeSort(int arr[], int l, int r) {\n  if (l < r) {\n    int m = (l + r) / 2;\n    mergeSort(arr, l, m);\n    mergeSort(arr, m+1, r);\n    merge(arr, l, m, r);\n  }\n}`,
+        "Quick Sort": `void quickSort(int arr[], int low, int high) {\n  if (low < high) {\n    int pi = partition(arr, low, high);\n    quickSort(arr, low, pi - 1);\n    quickSort(arr, pi + 1, high);\n  }\n}`,
+        "Heap Sort": `void heapSort(int arr[], int n) {\n  for (int i = n/2 - 1; i >= 0; i--) heapify(arr, n, i);\n  for (int i = n-1; i > 0; i--) {\n    swap(arr[0], arr[i]);\n    heapify(arr, i, 0);\n  }\n}`
+    };
+    document.getElementById('cppCode').textContent = codes[algorithm] || '// No code available';
+}
+
+// Theme Toggle
+function toggleTheme() {
+    if (document.body.style.getPropertyValue('--bg') === '#222') {
+        document.body.style.setProperty('--bg', '#f4f4f4');
+        document.body.style.setProperty('--text', '#000');
+        document.body.style.setProperty('--code-bg', '#fff');
+        document.body.style.setProperty('--footer-bg', '#222');
+    } else {
+        document.body.style.setProperty('--bg', '#222');
+        document.body.style.setProperty('--text', '#fff');
+        document.body.style.setProperty('--code-bg', '#333');
+        document.body.style.setProperty('--footer-bg', '#111');
+    }
+}
+
+generateArray();
+</script>
+</body>
+</html>
